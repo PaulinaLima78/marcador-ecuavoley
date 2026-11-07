@@ -1,0 +1,238 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#6A1F8E">
+<style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,sans-serif}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>Marcador Ecuavóley</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+</head>
+<body>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Poppins:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: marcador de cancha a dos columnas (equipo A | equipo B), números gigantes, botones grandes abajo de cada lado */
+:root{
+  --bg:#F4EFF7; --panel:#FFFFFF; --fg:#22102C; --muted:#5F4B6C; --line:#DACBE5;
+  --a:#6A1F8E; --a-ink:#FFFFFF; --a-soft:#EEE2F6;
+  --b:#C2410C; --b-ink:#FFFFFF; --b-soft:#FCE7DA;
+  --serve:#F5B700; --win:#1F7A4D;
+  --num:'Barlow Condensed','Arial Narrow',sans-serif; --body:'Poppins',system-ui,sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#150E19; --panel:#21182A; --fg:#F4EDF9; --muted:#B8A7C6; --line:#3A2D46;
+  --a:#B98AE0; --a-ink:#1A0B24; --a-soft:#33244A; --b:#F2905C; --b-ink:#2A0F02; --b-soft:#3D2416;
+  --serve:#FFD24D; --win:#7FD4A6; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#150E19; --panel:#21182A; --fg:#F4EDF9; --muted:#B8A7C6; --line:#3A2D46;
+  --a:#B98AE0; --a-ink:#1A0B24; --a-soft:#33244A; --b:#F2905C; --b-ink:#2A0F02; --b-soft:#3D2416;
+  --serve:#FFD24D; --win:#7FD4A6; color-scheme:dark}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{background:var(--bg);color:var(--fg);font-family:var(--body);font-size:15px}
+.app{max-width:900px;margin:0 auto;min-height:100%;display:flex;flex-direction:column;gap:12px;padding-block:12px 20px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.top{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+.top h1{font-family:var(--num);font-weight:800;font-size:26px;letter-spacing:.02em;margin:0;text-transform:uppercase}
+.rules{font-size:13px;color:var(--muted)}
+.board{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.team{background:var(--panel);border:2px solid var(--line);border-radius:20px;padding:12px;display:flex;flex-direction:column;gap:10px;align-items:stretch;position:relative}
+.team.serving{border-color:var(--serve);box-shadow:0 0 0 3px color-mix(in srgb,var(--serve) 35%,transparent)}
+.name{font:600 17px var(--body);color:var(--fg);background:transparent;border:none;border-bottom:1.5px dashed var(--line);padding:4px 2px;width:100%;text-align:center;min-height:40px}
+.name:focus-visible{outline:3px solid var(--fg);outline-offset:2px}
+.sets{display:flex;justify-content:center;gap:8px;align-items:center;min-height:22px}
+.dot{width:18px;height:18px;border-radius:999px;border:2px solid var(--line)}
+.ta .dot.on{background:var(--a);border-color:var(--a)}
+.tb .dot.on{background:var(--b);border-color:var(--b)}
+.setlabel{font-size:12px;color:var(--muted);margin-left:4px}
+.score{font-family:var(--num);font-weight:800;font-size:clamp(96px,26vw,190px);line-height:.9;text-align:center;font-variant-numeric:tabular-nums}
+.ta .score{color:var(--a)} .tb .score{color:var(--b)}
+.servebadge{align-self:center;font-size:13px;font-weight:700;padding:4px 12px;border-radius:999px;background:var(--serve);color:#2A2000;visibility:hidden}
+.team.serving .servebadge{visibility:visible}
+.rally{min-height:72px;border:none;border-radius:16px;font:700 18px var(--body);cursor:pointer;line-height:1.2;padding:8px}
+.ta .rally{background:var(--a);color:var(--a-ink)} .tb .rally{background:var(--b);color:var(--b-ink)}
+.rally small{display:block;font-weight:500;font-size:13px;opacity:.9}
+.rally:active{transform:scale(.98)}
+.rally:disabled{opacity:.4;cursor:not-allowed}
+.status{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:10px 14px;display:flex;flex-wrap:wrap;gap:6px 16px;align-items:center;justify-content:space-between}
+.status b{font-weight:700}
+.event{font-weight:600;min-height:22px}
+.event.point{color:var(--win)}
+.tools{display:flex;flex-wrap:wrap;gap:8px}
+.btn{min-height:46px;padding:0 16px;border-radius:12px;border:1.5px solid var(--line);background:var(--panel);color:var(--fg);font:600 15px var(--body);cursor:pointer}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn:focus-visible,.rally:focus-visible{outline:3px solid var(--fg);outline-offset:2px}
+.btn.warn{border-color:var(--b);color:var(--b)}
+.confirm{background:var(--b-soft);border-radius:14px;padding:12px 14px;display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.winner{background:var(--panel);border:2px solid var(--win);border-radius:18px;padding:16px;text-align:center;display:flex;flex-direction:column;gap:6px}
+.winner h2{font-family:var(--num);font-weight:800;font-size:36px;margin:0;color:var(--win);text-transform:uppercase}
+table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums}
+th,td{padding:8px 10px;border-bottom:1px solid var(--line);text-align:center;font-size:14px}
+th:first-child,td:first-child{text-align:left}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:12px 14px;display:flex;flex-direction:column;gap:10px}
+.card h3{margin:0;font-size:15px}
+.settings{display:flex;flex-wrap:wrap;gap:12px 20px;align-items:center}
+.settings label{display:flex;gap:8px;align-items:center;font-size:14px}
+.settings input[type=number]{width:72px;min-height:40px;font:inherit;padding:4px 8px;border:1.5px solid var(--line);border-radius:10px;background:var(--bg);color:var(--fg)}
+.settings input[type=checkbox]{width:22px;height:22px;accent-color:var(--a)}
+details summary{cursor:pointer;font-weight:600;min-height:32px;display:flex;align-items:center}
+@media (max-width:420px){.rally{font-size:16px;min-height:66px}.name{font-size:15px}}
+@media (prefers-reduced-motion:no-preference){.team{transition:border-color .2s,box-shadow .2s}}
+</style>
+
+<div class="app">
+  <div class="top">
+    <h1>Marcador Ecuavóley</h1>
+    <span class="rules" id="rules">Sets a 15 (por 2) · con cambio · gana quien hace 2 sets</span>
+  </div>
+
+  <div class="board">
+    <section class="team ta" id="teamA" aria-label="Equipo A">
+      <input class="name" id="nameA" type="text" value="Equipo A" aria-label="Nombre del equipo A" autocomplete="off">
+      <div class="sets" id="setsA"></div>
+      <div class="score" id="scoreA" aria-live="polite">0</div>
+      <span class="servebadge">● Saca</span>
+      <button type="button" class="rally" id="rallyA">Ganó el rally<small id="hintA">Punto</small></button>
+    </section>
+    <section class="team tb" id="teamB" aria-label="Equipo B">
+      <input class="name" id="nameB" type="text" value="Equipo B" aria-label="Nombre del equipo B" autocomplete="off">
+      <div class="sets" id="setsB"></div>
+      <div class="score" id="scoreB" aria-live="polite">0</div>
+      <span class="servebadge">● Saca</span>
+      <button type="button" class="rally" id="rallyB">Ganó el rally<small id="hintB">Cambio</small></button>
+    </section>
+  </div>
+
+  <div class="status">
+    <span><b id="setNo">Set 1</b> · Saca <span id="serverName">Equipo A</span></span>
+    <span class="event" id="event" aria-live="polite">Toca el botón del equipo que ganó cada rally.</span>
+  </div>
+
+  <div class="winner" id="winner" hidden>
+    <h2 id="winnerTitle">¡Ganó!</h2>
+    <span id="winnerSub"></span>
+  </div>
+
+  <div class="tools">
+    <button type="button" class="btn" id="undo">↶ Deshacer</button>
+    <button type="button" class="btn" id="swap">Cambiar saque</button>
+    <button type="button" class="btn warn" id="newMatch">Nuevo partido</button>
+  </div>
+
+  <div class="confirm" id="confirm" hidden>
+    <span>¿Borrar el marcador y empezar un partido nuevo?</span>
+    <button type="button" class="btn warn" id="confirmYes">Sí, empezar de nuevo</button>
+    <button type="button" class="btn" id="confirmNo">Cancelar</button>
+  </div>
+
+  <div class="card">
+    <h3>Sets jugados</h3>
+    <div style="overflow-x:auto">
+      <table>
+        <thead><tr><th>Set</th><th id="thA">Equipo A</th><th id="thB">Equipo B</th></tr></thead>
+        <tbody id="hist"><tr><td colspan="3" style="text-align:center;color:var(--muted)">Todavía no termina ningún set.</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <details class="card">
+    <summary>Ajustes del partido</summary>
+    <div class="settings">
+      <label for="target">Puntos por set <input type="number" id="target" min="5" max="30" value="15"></label>
+      <label for="setsToWin">Sets para ganar <input type="number" id="setsToWin" min="1" max="3" value="2"></label>
+      <label for="winBy2"><input type="checkbox" id="winBy2" checked> Ganar el set por 2 de diferencia</label>
+    </div>
+    <span class="rules">El set se gana llegando a 15 con 2 puntos de diferencia; si no, se sigue jugando (16–14, 17–15…). Con cambio: solo suma el equipo que tiene el saque. Si gana el rally el que recibe, recupera el saque sin sumar punto. El perdedor de cada set empieza sacando el siguiente; puedes corregirlo con "Cambiar saque".</span>
+  </details>
+</div>
+
+<script>
+(function(){
+  var KEY = 'marcador-ecuavoley-v2';
+  var $ = function(id){ return document.getElementById(id); };
+  function fresh(prev){
+    return {
+      names: prev ? prev.names.slice() : ['Equipo A','Equipo B'],
+      settings: prev ? Object.assign({}, prev.settings) : {target:15, setsToWin:2, winBy2:true},
+      sets:[0,0], score:[0,0], server:0, setNo:1, history:[], done:false, winner:null,
+      event:'Toca el botón del equipo que ganó cada rally.', eventType:''
+    };
+  }
+  var s = fresh(); var undo = [];
+  try { var saved = JSON.parse(localStorage.getItem(KEY) || 'null'); if (saved && saved.s) { s = saved.s; undo = saved.undo || []; } } catch(e){}
+  function save(){ try { localStorage.setItem(KEY, JSON.stringify({s:s, undo:undo.slice(-150)})); } catch(e){} }
+  function snap(){ undo.push(JSON.stringify(s)); if (undo.length > 150) undo.shift(); }
+  function nm(i){ return s.names[i].trim() || (i ? 'Equipo B' : 'Equipo A'); }
+
+  function rally(w){
+    if (s.done) return;
+    snap();
+    if (w === s.server){
+      s.score[w]++;
+      var t = s.settings.target, o = s.score[1-w];
+      var setWon = s.score[w] >= t && (!s.settings.winBy2 || s.score[w] - o >= 2);
+      if (setWon){
+        s.sets[w]++;
+        s.history.push({a:s.score[0], b:s.score[1], w:w});
+        if (s.sets[w] >= s.settings.setsToWin){
+          s.done = true; s.winner = w;
+          s.event = '¡' + nm(w) + ' gana el partido!'; s.eventType = 'point';
+        } else {
+          s.event = nm(w) + ' gana el set ' + s.setNo + ' (' + s.score[0] + '–' + s.score[1] + '). Empieza el set ' + (s.setNo+1) + '.';
+          s.eventType = 'point';
+          s.setNo++; s.score = [0,0]; s.server = 1 - w;
+        }
+      } else {
+        s.event = 'Punto para ' + nm(w) + '.'; s.eventType = 'point';
+      }
+    } else {
+      s.server = w;
+      s.event = 'Cambio: ahora saca ' + nm(w) + '.'; s.eventType = '';
+    }
+    render(); save();
+  }
+
+  function render(){
+    ['A','B'].forEach(function(L, i){
+      $('score'+L).textContent = s.score[i];
+      $('team'+L).classList.toggle('serving', s.server === i && !s.done);
+      var d = $('sets'+L); d.textContent = '';
+      for (var k=0;k<s.settings.setsToWin;k++){ var dot = document.createElement('span'); dot.className = 'dot' + (k < s.sets[i] ? ' on' : ''); d.appendChild(dot); }
+      var lab = document.createElement('span'); lab.className = 'setlabel'; lab.textContent = s.sets[i] + (s.sets[i] === 1 ? ' set' : ' sets'); d.appendChild(lab);
+      $('hint'+L).textContent = s.server === i ? 'Punto' : 'Cambio (recupera el saque)';
+      $('rally'+L).disabled = s.done;
+      if (document.activeElement !== $('name'+L)) $('name'+L).value = s.names[i];
+      $('th'+L).textContent = nm(i);
+    });
+    $('setNo').textContent = 'Set ' + s.setNo;
+    $('serverName').textContent = nm(s.server);
+    var ev = $('event'); ev.textContent = s.event; ev.className = 'event' + (s.eventType ? ' ' + s.eventType : '');
+    $('undo').disabled = undo.length === 0;
+    $('swap').disabled = s.done;
+    $('rules').textContent = 'Sets a ' + s.settings.target + (s.settings.winBy2 ? ' (por 2)' : '') + ' · con cambio · gana quien hace ' + s.settings.setsToWin + (s.settings.setsToWin === 1 ? ' set' : ' sets');
+    var h = $('hist'); h.textContent = '';
+    if (!s.history.length){ var tr = document.createElement('tr'); var td = document.createElement('td'); td.colSpan = 3; td.style.textAlign = 'center'; td.style.color = 'var(--muted)'; td.textContent = 'Todavía no termina ningún set.'; tr.appendChild(td); h.appendChild(tr); }
+    s.history.forEach(function(x, i){ var tr = document.createElement('tr'); [ 'Set ' + (i+1), x.a, x.b ].forEach(function(v, j){ var td = document.createElement('td'); td.textContent = v; if ((j===1 && x.w===0) || (j===2 && x.w===1)) td.style.fontWeight = '700'; tr.appendChild(td); }); h.appendChild(tr); });
+    $('winner').hidden = !s.done;
+    if (s.done){
+      $('winnerTitle').textContent = '¡Ganó ' + nm(s.winner) + '!';
+      $('winnerSub').textContent = 'Sets: ' + s.sets[0] + ' – ' + s.sets[1] + ' · ' + s.history.map(function(x){ return x.a + '–' + x.b; }).join(', ');
+    }
+    $('target').value = s.settings.target; $('setsToWin').value = s.settings.setsToWin; $('winBy2').checked = s.settings.winBy2;
+  }
+
+  $('rallyA').addEventListener('click', function(){ rally(0); });
+  $('rallyB').addEventListener('click', function(){ rally(1); });
+  $('undo').addEventListener('click', function(){ if (!undo.length) return; s = JSON.parse(undo.pop()); s.event = 'Se deshizo la última jugada.'; s.eventType = ''; render(); save(); });
+  $('swap').addEventListener('click', function(){ snap(); s.server = 1 - s.server; s.event = 'Saque corregido: saca ' + nm(s.server) + '.'; s.eventType = ''; render(); save(); });
+  $('newMatch').addEventListener('click', function(){ $('confirm').hidden = false; $('confirmYes').focus(); });
+  $('confirmNo').addEventListener('click', function(){ $('confirm').hidden = true; });
+  $('confirmYes').addEventListener('click', function(){ s = fresh(s); undo = []; $('confirm').hidden = true; render(); save(); });
+  ['A','B'].forEach(function(L, i){ $('name'+L).addEventListener('input', function(e){ s.names[i] = e.target.value; render(); save(); }); });
+  $('target').addEventListener('change', function(e){ var v = parseInt(e.target.value,10); if (v >= 5 && v <= 30){ s.settings.target = v; render(); save(); } });
+  $('setsToWin').addEventListener('change', function(e){ var v = parseInt(e.target.value,10); if (v >= 1 && v <= 3){ s.settings.setsToWin = v; render(); save(); } });
+  $('winBy2').addEventListener('change', function(e){ s.settings.winBy2 = e.target.checked; render(); save(); });
+  render();
+})();
+</script>
+</body>
+</html>
