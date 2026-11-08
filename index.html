@@ -7,6 +7,8 @@
 <style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,sans-serif}img{max-width:100%}[hidden]{display:none!important}</style>
 <title>Marcador Ecuavóley</title>
 <meta name="claude:viewport-fit-sides" content="cover">
+<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 </head>
 <body>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Poppins:wght@400;500;600;700&display=swap">
@@ -77,6 +79,20 @@ th:first-child,td:first-child{text-align:left}
 details summary{cursor:pointer;font-weight:600;min-height:32px;display:flex;align-items:center}
 @media (max-width:420px){.rally{font-size:16px;min-height:66px}.name{font-size:15px}}
 @media (prefers-reduced-motion:no-preference){.team{transition:border-color .2s,box-shadow .2s}}
+.livebar{display:flex;align-items:center;gap:8px;background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:6px 14px;font-weight:600;font-size:14px;align-self:flex-start}
+.pulse{width:10px;height:10px;border-radius:999px;background:var(--muted);flex-shrink:0}
+.livebar.on .pulse{background:#16A34A}
+.livebar.off .pulse{background:#DC2626}
+@media (prefers-reduced-motion:no-preference){.livebar.on .pulse{animation:pl 1.6s infinite}@keyframes pl{0%,100%{opacity:1}50%{opacity:.35}}}
+.share{display:grid;grid-template-columns:auto minmax(0,1fr);gap:14px;align-items:center}
+.qr{background:#fff;padding:8px;border-radius:12px;width:156px;height:156px;display:flex;align-items:center;justify-content:center}
+.qr img,.qr canvas{width:140px!important;height:140px!important}
+.code{font-family:var(--num);font-weight:800;font-size:40px;letter-spacing:.12em;color:var(--a)}
+.link{font-size:13px;word-break:break-all;color:var(--muted);user-select:all}
+.viewers{font-size:14px;font-weight:600}
+@media (max-width:480px){.share{grid-template-columns:minmax(0,1fr);justify-items:center;text-align:center}}
+body.viewer .rally,body.viewer .tools,body.viewer details,body.viewer #shareCard,body.viewer #confirm{display:none!important}
+body.viewer .name{border-bottom-color:transparent;pointer-events:none}
 </style>
 
 <div class="app">
@@ -84,6 +100,7 @@ details summary{cursor:pointer;font-weight:600;min-height:32px;display:flex;alig
     <h1>Marcador Ecuavóley</h1>
     <span class="rules" id="rules">Sets a 15 (por 2) · con cambio · gana quien hace 2 sets</span>
   </div>
+  <div class="livebar" id="livebar" hidden><span class="pulse" aria-hidden="true"></span><span id="liveText">Conectando…</span></div>
 
   <div class="board">
     <section class="team ta" id="teamA" aria-label="Equipo A">
@@ -124,6 +141,22 @@ details summary{cursor:pointer;font-weight:600;min-height:32px;display:flex;alig
     <button type="button" class="btn" id="confirmNo">Cancelar</button>
   </div>
 
+  <div class="card" id="shareCard">
+    <h3>Compartir en vivo</h3>
+    <div class="share">
+      <div class="qr" id="qr" aria-label="Código QR para ver el marcador en vivo"></div>
+      <div style="display:flex;flex-direction:column;gap:8px;min-width:0">
+        <span class="rules">Que escaneen el código o abran el enlace para ver este marcador en vivo en su celular.</span>
+        <span class="code" id="shareCode">-----</span>
+        <span class="link" id="shareLink"></span>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+          <button type="button" class="btn" id="copyLink">Copiar enlace</button>
+          <span class="viewers" id="viewers">Preparando conexión…</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <div class="card">
     <h3>Sets jugados</h3>
     <div style="overflow-x:auto">
@@ -157,9 +190,15 @@ details summary{cursor:pointer;font-weight:600;min-height:32px;display:flex;alig
       event:'Toca el botón del equipo que ganó cada rally.', eventType:''
     };
   }
+  var params = new URLSearchParams(location.search);
+  var VIEW = (params.get('ver') || '').toUpperCase().replace(/[^A-Z0-9]/g,'');
+  var VIEWER = VIEW.length > 0;
+  if (VIEWER) document.body.classList.add('viewer');
   var s = fresh(); var undo = [];
-  try { var saved = JSON.parse(localStorage.getItem(KEY) || 'null'); if (saved && saved.s) { s = saved.s; undo = saved.undo || []; } } catch(e){}
-  function save(){ try { localStorage.setItem(KEY, JSON.stringify({s:s, undo:undo.slice(-150)})); } catch(e){} }
+  if (!VIEWER) { try { var saved = JSON.parse(localStorage.getItem(KEY) || 'null'); if (saved && saved.s) { s = saved.s; undo = saved.undo || []; } } catch(e){} }
+  var conns = [];
+  function broadcast(){ var msg = JSON.stringify(s); conns.forEach(function(c){ try { if (c.open) c.send(msg); } catch(e){} }); }
+  function save(){ if (VIEWER) return; try { localStorage.setItem(KEY, JSON.stringify({s:s, undo:undo.slice(-150)})); } catch(e){} broadcast(); }
   function snap(){ undo.push(JSON.stringify(s)); if (undo.length > 150) undo.shift(); }
   function nm(i){ return s.names[i].trim() || (i ? 'Equipo B' : 'Equipo A'); }
 
@@ -232,6 +271,80 @@ details summary{cursor:pointer;font-weight:600;min-height:32px;display:flex;alig
   $('setsToWin').addEventListener('change', function(e){ var v = parseInt(e.target.value,10); if (v >= 1 && v <= 3){ s.settings.setsToWin = v; render(); save(); } });
   $('winBy2').addEventListener('change', function(e){ s.settings.winBy2 = e.target.checked; render(); save(); });
   render();
+
+  // ---------- Sincronización en vivo (PeerJS / WebRTC) ----------
+  var PREFIX = 'ecuavoley-carcelen-';
+  var ICE = {iceServers:[
+    {urls:'stun:stun.l.google.com:19302'},
+    {urls:'stun:stun1.l.google.com:19302'},
+    {urls:'turn:openrelay.metered.ca:80', username:'openrelayproject', credential:'openrelayproject'},
+    {urls:'turn:openrelay.metered.ca:443', username:'openrelayproject', credential:'openrelayproject'}
+  ]};
+  var bar = $('livebar');
+  function live(text, state){ bar.hidden = false; bar.className = 'livebar' + (state ? ' ' + state : ''); $('liveText').textContent = text; }
+  if (typeof Peer === 'undefined'){
+    if (VIEWER) live('Sin conexión a internet: no se puede ver en vivo.', 'off');
+    else $('viewers').textContent = 'Sin internet: el marcador funciona, pero no se puede compartir.';
+    return;
+  }
+
+  if (VIEWER){
+    var vpeer = null, vconn = null, retry = null;
+    function scheduleRetry(){ clearTimeout(retry); retry = setTimeout(connect, 3000); }
+    function connect(){
+      if (!vpeer || vpeer.destroyed){
+        vpeer = new Peer(undefined, {config:ICE});
+        vpeer.on('open', connect);
+        vpeer.on('error', function(err){ if (err && err.type === 'peer-unavailable') live('El árbitro aún no está conectado. Reintentando…', 'off'); else live('Reconectando…', 'off'); scheduleRetry(); });
+        vpeer.on('disconnected', function(){ try { vpeer.reconnect(); } catch(e){} });
+        return;
+      }
+      if (!vpeer.open) return;
+      live('Conectando con el marcador ' + VIEW + '…', '');
+      vconn = vpeer.connect(PREFIX + VIEW.toLowerCase(), {reliable:true});
+      vconn.on('open', function(){ live('En vivo · marcador ' + VIEW, 'on'); });
+      vconn.on('data', function(d){ try { s = typeof d === 'string' ? JSON.parse(d) : d; render(); } catch(e){} });
+      vconn.on('close', function(){ live('Se perdió la conexión. Reintentando…', 'off'); scheduleRetry(); });
+      vconn.on('error', function(){ live('Se perdió la conexión. Reintentando…', 'off'); scheduleRetry(); });
+    }
+    live('Conectando…', '');
+    connect();
+    return;
+  }
+
+  // Árbitro
+  var CODE_KEY = 'marcador-ecuavoley-codigo';
+  function newCode(){ var ch = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789', c = ''; for (var i=0;i<5;i++) c += ch[Math.floor(Math.random()*ch.length)]; return c; }
+  var code = null; try { code = localStorage.getItem(CODE_KEY); } catch(e){}
+  if (!code) { code = newCode(); try { localStorage.setItem(CODE_KEY, code); } catch(e){} }
+  var hpeer = null, qrDone = false;
+  function viewersText(){ var n = conns.filter(function(c){ return c.open; }).length; $('viewers').textContent = n === 0 ? 'Nadie viendo todavía' : (n === 1 ? '1 persona viendo' : n + ' personas viendo'); }
+  function showShare(){
+    var url = location.origin + location.pathname + '?ver=' + code;
+    $('shareCode').textContent = code; $('shareLink').textContent = url;
+    if (!qrDone && typeof QRCode !== 'undefined'){ $('qr').textContent = ''; new QRCode($('qr'), {text:url, width:140, height:140, correctLevel:QRCode.CorrectLevel.M}); qrDone = true; }
+  }
+  function startHost(){
+    hpeer = new Peer(PREFIX + code.toLowerCase(), {config:ICE});
+    hpeer.on('open', function(){ showShare(); viewersText(); });
+    hpeer.on('connection', function(c){
+      conns.push(c);
+      c.on('open', function(){ try { c.send(JSON.stringify(s)); } catch(e){} viewersText(); });
+      c.on('close', function(){ conns = conns.filter(function(x){ return x !== c; }); viewersText(); });
+      c.on('error', function(){ conns = conns.filter(function(x){ return x !== c; }); viewersText(); });
+    });
+    hpeer.on('disconnected', function(){ $('viewers').textContent = 'Reconectando…'; try { hpeer.reconnect(); } catch(e){} });
+    hpeer.on('error', function(err){
+      if (err && err.type === 'unavailable-id'){ code = newCode(); try { localStorage.setItem(CODE_KEY, code); } catch(e){} qrDone = false; hpeer.destroy(); startHost(); }
+      else if (err && err.type !== 'peer-unavailable'){ $('viewers').textContent = 'Problema de conexión, reintentando…'; setTimeout(function(){ if (hpeer.destroyed) startHost(); else if (hpeer.disconnected) try { hpeer.reconnect(); } catch(e){} }, 3000); }
+    });
+  }
+  $('shareCode').textContent = code;
+  $('copyLink').addEventListener('click', function(){
+    var url = $('shareLink').textContent || (location.origin + location.pathname + '?ver=' + code);
+    try { navigator.clipboard.writeText(url).then(function(){ $('copyLink').textContent = 'Copiado'; setTimeout(function(){ $('copyLink').textContent = 'Copiar enlace'; }, 1500); }, function(){}); } catch(e){}
+  });
+  startHost();
 })();
 </script>
 </body>
