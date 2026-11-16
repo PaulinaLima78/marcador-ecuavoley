@@ -91,6 +91,27 @@ details summary{cursor:pointer;font-weight:600;min-height:32px;display:flex;alig
 .link{font-size:13px;word-break:break-all;color:var(--muted);user-select:all}
 .viewers{font-size:14px;font-weight:600}
 @media (max-width:480px){.share{grid-template-columns:minmax(0,1fr);justify-items:center;text-align:center}}
+.setup{background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:16px;display:flex;flex-direction:column;gap:14px}
+.setup h2{font-family:var(--num);font-weight:800;font-size:28px;margin:0;text-transform:uppercase}
+.setup .pair{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.setup label.f{display:flex;flex-direction:column;gap:6px;font-weight:600;font-size:14px}
+.setup input[type=text]{min-height:52px;font:600 20px var(--body);padding:6px 12px;border-radius:12px;border:2px solid var(--line);background:var(--bg);color:var(--fg);width:100%}
+.setup .fa input{border-color:var(--a)} .setup .fb input{border-color:var(--b)}
+.seg{display:flex;gap:8px;flex-wrap:wrap}
+.seg button{min-height:46px;min-width:64px;border-radius:12px;border:2px solid var(--line);background:var(--bg);color:var(--fg);font:700 17px var(--body);cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--a);border-color:var(--a);color:var(--a-ink)}
+.btn.big{min-height:60px;font-size:19px;background:var(--a);color:var(--a-ink);border-color:var(--a)}
+.watch{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.watch input{min-height:46px;width:130px;font:800 22px var(--num);letter-spacing:.12em;text-transform:uppercase;padding:4px 10px;border-radius:12px;border:2px solid var(--line);background:var(--bg);color:var(--fg)}
+.divider{border-top:1px dashed var(--line)}
+.sidebtn{min-height:52px;font-size:17px}
+#matchUI{display:flex;flex-direction:column;gap:12px}
+.tools2{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.tools2 .btn{padding:0 8px;font-size:15px}
+#voice[aria-pressed="true"]{background:var(--win);border-color:var(--win);color:#fff}
+@media (max-width:420px){.tools2 .btn{font-size:13px}}
+.viewonly{display:none}
+body.viewer .viewonly{display:flex}
 body.viewer .rally,body.viewer .tools,body.viewer details,body.viewer #shareCard,body.viewer #confirm{display:none!important}
 body.viewer .name{border-bottom-color:transparent;pointer-events:none}
 </style>
@@ -100,9 +121,40 @@ body.viewer .name{border-bottom-color:transparent;pointer-events:none}
     <h1>Marcador Ecuavóley</h1>
     <span class="rules" id="rules">Sets a 15 (por 2) · con cambio · gana quien hace 2 sets</span>
   </div>
+  <section class="setup" id="setup" hidden aria-labelledby="setupTitle">
+    <h2 id="setupTitle">Nuevo partido</h2>
+    <div class="pair">
+      <label class="f fa">Equipo de la izquierda<input type="text" id="setupA" placeholder="Ej: Furia" maxlength="20" autocomplete="off"></label>
+      <label class="f fb">Equipo de la derecha<input type="text" id="setupB" placeholder="Ej: Goyo" maxlength="20" autocomplete="off"></label>
+    </div>
+    <div class="f" style="display:flex;flex-direction:column;gap:6px">
+      <span style="font-weight:600;font-size:14px">Puntos por set</span>
+      <div class="seg" id="segTarget" role="group" aria-label="Puntos por set">
+        <button type="button" data-v="12" aria-pressed="false">12</button>
+        <button type="button" data-v="15" aria-pressed="true">15</button>
+      </div>
+    </div>
+    <div class="f" style="display:flex;flex-direction:column;gap:6px">
+      <span style="font-weight:600;font-size:14px">¿Quién saca primero?</span>
+      <div class="seg" id="segServe" role="group" aria-label="Quién saca primero">
+        <button type="button" data-v="0" aria-pressed="true" id="serveOptA">Izquierda</button>
+        <button type="button" data-v="1" aria-pressed="false" id="serveOptB">Derecha</button>
+      </div>
+    </div>
+    <button type="button" class="btn big" id="startMatch">Empezar partido</button>
+    <button type="button" class="btn" id="resumeMatch" hidden>Volver al partido en curso</button>
+    <div class="divider"></div>
+    <span class="rules">¿Solo quieres ver un partido en vivo? Escribe el código que tiene el árbitro:</span>
+    <div class="watch">
+      <input type="text" id="watchCode" maxlength="5" placeholder="CÓDIGO" aria-label="Código del marcador" autocomplete="off">
+      <button type="button" class="btn" id="watchGo">Ver en vivo</button>
+    </div>
+  </section>
+
   <div class="livebar" id="livebar" hidden><span class="pulse" aria-hidden="true"></span><span id="liveText">Conectando…</span></div>
 
-  <div class="board">
+  <div id="matchUI">
+  <div class="board" id="board">
     <section class="team ta" id="teamA" aria-label="Equipo A">
       <input class="name" id="nameA" type="text" value="Equipo A" aria-label="Nombre del equipo A" autocomplete="off">
       <div class="sets" id="setsA"></div>
@@ -117,6 +169,12 @@ body.viewer .name{border-bottom-color:transparent;pointer-events:none}
       <span class="servebadge">● Saca</span>
       <button type="button" class="rally" id="rallyB">Ganó el rally<small id="hintB">Cambio</small></button>
     </section>
+  </div>
+
+  <div class="tools2">
+    <button type="button" class="btn sidebtn" id="flip">⇄ Cambiar de lado</button>
+    <button type="button" class="btn sidebtn" id="voice" aria-pressed="false">🔈 Voz apagada</button>
+    <button type="button" class="btn sidebtn" id="sayNow">📣 Decir marcador</button>
   </div>
 
   <div class="status">
@@ -139,6 +197,11 @@ body.viewer .name{border-bottom-color:transparent;pointer-events:none}
     <span>¿Borrar el marcador y empezar un partido nuevo?</span>
     <button type="button" class="btn warn" id="confirmYes">Sí, empezar de nuevo</button>
     <button type="button" class="btn" id="confirmNo">Cancelar</button>
+  </div>
+
+  <div class="card viewonly" style="flex-direction:column">
+    <span class="rules">Estás viendo este partido. ¿Te toca arbitrar otro?</span>
+    <a class="btn big" href="./?nuevo=1" style="display:flex;align-items:center;justify-content:center;text-decoration:none">Arbitrar otro partido</a>
   </div>
 
   <div class="card" id="shareCard">
@@ -176,6 +239,7 @@ body.viewer .name{border-bottom-color:transparent;pointer-events:none}
     </div>
     <span class="rules">El set se gana llegando a 15 con 2 puntos de diferencia; si no, se sigue jugando (16–14, 17–15…). Con cambio: solo suma el equipo que tiene el saque. Si gana el rally el que recibe, recupera el saque sin sumar punto. El perdedor de cada set empieza sacando el siguiente; puedes corregirlo con "Cambiar saque".</span>
   </details>
+  </div>
 </div>
 
 <script>
@@ -184,7 +248,7 @@ body.viewer .name{border-bottom-color:transparent;pointer-events:none}
   var $ = function(id){ return document.getElementById(id); };
   function fresh(prev){
     return {
-      names: prev ? prev.names.slice() : ['Equipo A','Equipo B'],
+      names: ['',''], started:false,
       settings: prev ? Object.assign({}, prev.settings) : {target:15, setsToWin:2, winBy2:true},
       sets:[0,0], score:[0,0], server:0, setNo:1, history:[], done:false, winner:null,
       event:'Toca el botón del equipo que ganó cada rally.', eventType:''
@@ -195,13 +259,15 @@ body.viewer .name{border-bottom-color:transparent;pointer-events:none}
   var VIEWER = VIEW.length > 0;
   if (VIEWER) document.body.classList.add('viewer');
   var s = fresh(); var undo = [];
-  if (!VIEWER) { try { var saved = JSON.parse(localStorage.getItem(KEY) || 'null'); if (saved && saved.s) { s = saved.s; undo = saved.undo || []; } } catch(e){} }
+  if (!VIEWER) { try { var saved = JSON.parse(localStorage.getItem(KEY) || 'null'); if (saved && saved.s) { s = saved.s; undo = saved.undo || []; if (s.started === undefined) s.started = true; } } catch(e){} }
   var conns = [];
   function broadcast(){ var msg = JSON.stringify(s); conns.forEach(function(c){ try { if (c.open) c.send(msg); } catch(e){} }); }
   function save(){ if (VIEWER) return; try { localStorage.setItem(KEY, JSON.stringify({s:s, undo:undo.slice(-150)})); } catch(e){} broadcast(); }
   function snap(){ undo.push(JSON.stringify(s)); if (undo.length > 150) undo.shift(); }
   function nm(i){ return s.names[i].trim() || (i ? 'Equipo B' : 'Equipo A'); }
 
+  function marcadorTexto(){ var sv = s.server; return 'Bate ' + s.score[sv] + ', recibe ' + s.score[1-sv] + '.'; }
+  function anuncia(texto){ s.say = texto; s.n = (s.n || 0) + 1; }
   function rally(w){
     if (s.done) return;
     snap();
@@ -215,22 +281,66 @@ body.viewer .name{border-bottom-color:transparent;pointer-events:none}
         if (s.sets[w] >= s.settings.setsToWin){
           s.done = true; s.winner = w;
           s.event = '¡' + nm(w) + ' gana el partido!'; s.eventType = 'point';
+          anuncia('Punto. Set para ' + nm(w) + ', ' + s.score[w] + ' a ' + s.score[1-w] + '. ¡' + nm(w) + ' gana el partido!');
         } else {
-          s.event = nm(w) + ' gana el set ' + s.setNo + ' (' + s.score[0] + '–' + s.score[1] + '). Empieza el set ' + (s.setNo+1) + '.';
+          s.event = nm(w) + ' gana el set ' + s.setNo + ' (' + s.score[0] + '–' + s.score[1] + '). Cambio de cancha: empieza el set ' + (s.setNo+1) + '.';
           s.eventType = 'point';
+          var fin = s.score[w] + ' a ' + s.score[1-w];
           s.setNo++; s.score = [0,0]; s.server = 1 - w;
+          anuncia('Punto. Set para ' + nm(w) + ', ' + fin + '. Cambio de cancha. Saca ' + nm(s.server) + '.');
         }
       } else {
         s.event = 'Punto para ' + nm(w) + '.'; s.eventType = 'point';
+        anuncia('Punto. ' + marcadorTexto());
       }
     } else {
       s.server = w;
       s.event = 'Cambio: ahora saca ' + nm(w) + '.'; s.eventType = '';
+      anuncia('Cambio. Saca ' + nm(w) + '. ' + marcadorTexto());
     }
-    render(); save();
+    render(); save(); speakNew();
   }
 
+  // ---------- Voz (para conectar un parlante) ----------
+  var VOICE_KEY = 'marcador-ecuavoley-voz';
+  var voiceOn = false; try { voiceOn = localStorage.getItem(VOICE_KEY) === '1'; } catch(e){}
+  var canSpeak = 'speechSynthesis' in window;
+  var lastSaid = s.n || 0, esVoice = null;
+  function pickVoice(){
+    if (!canSpeak) return;
+    var vs = speechSynthesis.getVoices().filter(function(v){ return /^es/i.test(v.lang); });
+    var pref = ['es-EC','es-CO','es-MX','es-US','es-419','es-ES'];
+    esVoice = null;
+    for (var i=0;i<pref.length && !esVoice;i++) esVoice = vs.filter(function(v){ return v.lang.replace('_','-') === pref[i]; })[0] || null;
+    if (!esVoice) esVoice = vs[0] || null;
+  }
+  if (canSpeak){ pickVoice(); try { speechSynthesis.addEventListener('voiceschanged', pickVoice); } catch(e){} }
+  function speak(text){
+    if (!canSpeak || !text) return;
+    try {
+      speechSynthesis.cancel();
+      var u = new SpeechSynthesisUtterance(text);
+      u.lang = esVoice ? esVoice.lang : 'es-419'; if (esVoice) u.voice = esVoice;
+      u.rate = 0.95; u.volume = 1;
+      speechSynthesis.speak(u);
+    } catch(e){}
+  }
+  function speakNew(){ var n = s.n || 0; if (n !== lastSaid){ lastSaid = n; if (voiceOn) speak(s.say); } }
+  function voiceUI(){ var b = $('voice'); b.setAttribute('aria-pressed', String(voiceOn)); b.textContent = voiceOn ? '🔊 Voz activada' : '🔈 Voz apagada'; b.disabled = !canSpeak; if (!canSpeak) b.textContent = 'Voz no disponible'; }
+  function decirMarcador(){
+    if (s.done) return '¡' + nm(s.winner) + ' gana el partido! Sets ' + s.sets[s.winner] + ' a ' + s.sets[1-s.winner] + '.';
+    return 'Set ' + s.setNo + '. Saca ' + nm(s.server) + '. ' + marcadorTexto() + ' Sets: ' + nm(0) + ' ' + s.sets[0] + ', ' + nm(1) + ' ' + s.sets[1] + '.';
+  }
+
+  var FLIP_KEY = 'marcador-ecuavoley-lado';
+  var flipLocal = false; try { flipLocal = localStorage.getItem(FLIP_KEY) === '1'; } catch(e){}
+  var showSetup = false;
   function render(){
+    var swapped = (((s.setNo - 1) % 2) === 1) !== flipLocal;
+    $('teamA').style.order = swapped ? 2 : 1; $('teamB').style.order = swapped ? 1 : 2;
+    var setupOn = !VIEWER && (showSetup || !s.started);
+    $('setup').hidden = !setupOn; $('matchUI').hidden = setupOn;
+    $('resumeMatch').hidden = !(s.started && !s.done);
     ['A','B'].forEach(function(L, i){
       $('score'+L).textContent = s.score[i];
       $('team'+L).classList.toggle('serving', s.server === i && !s.done);
@@ -239,7 +349,7 @@ body.viewer .name{border-bottom-color:transparent;pointer-events:none}
       var lab = document.createElement('span'); lab.className = 'setlabel'; lab.textContent = s.sets[i] + (s.sets[i] === 1 ? ' set' : ' sets'); d.appendChild(lab);
       $('hint'+L).textContent = s.server === i ? 'Punto' : 'Cambio (recupera el saque)';
       $('rally'+L).disabled = s.done;
-      if (document.activeElement !== $('name'+L)) $('name'+L).value = s.names[i];
+      if (document.activeElement !== $('name'+L)) $('name'+L).value = nm(i);
       $('th'+L).textContent = nm(i);
     });
     $('setNo').textContent = 'Set ' + s.setNo;
@@ -261,11 +371,43 @@ body.viewer .name{border-bottom-color:transparent;pointer-events:none}
 
   $('rallyA').addEventListener('click', function(){ rally(0); });
   $('rallyB').addEventListener('click', function(){ rally(1); });
-  $('undo').addEventListener('click', function(){ if (!undo.length) return; s = JSON.parse(undo.pop()); s.event = 'Se deshizo la última jugada.'; s.eventType = ''; render(); save(); });
-  $('swap').addEventListener('click', function(){ snap(); s.server = 1 - s.server; s.event = 'Saque corregido: saca ' + nm(s.server) + '.'; s.eventType = ''; render(); save(); });
+  $('undo').addEventListener('click', function(){ if (!undo.length) return; var n = s.n || 0; s = JSON.parse(undo.pop()); s.n = n; s.event = 'Se deshizo la última jugada.'; s.eventType = ''; anuncia('Corrección. Saca ' + nm(s.server) + '. ' + marcadorTexto()); render(); save(); speakNew(); });
+  $('swap').addEventListener('click', function(){ snap(); s.server = 1 - s.server; s.event = 'Saque corregido: saca ' + nm(s.server) + '.'; s.eventType = ''; anuncia('Corrección. Saca ' + nm(s.server) + '. ' + marcadorTexto()); render(); save(); speakNew(); });
   $('newMatch').addEventListener('click', function(){ $('confirm').hidden = false; $('confirmYes').focus(); });
   $('confirmNo').addEventListener('click', function(){ $('confirm').hidden = true; });
-  $('confirmYes').addEventListener('click', function(){ s = fresh(s); undo = []; $('confirm').hidden = true; render(); save(); });
+  $('confirmYes').addEventListener('click', function(){ s = fresh(s); undo = []; $('confirm').hidden = true; openSetup(); render(); save(); });
+  $('voice').addEventListener('click', function(){ voiceOn = !voiceOn; try { localStorage.setItem(VOICE_KEY, voiceOn ? '1' : '0'); } catch(e){} voiceUI(); if (voiceOn) speak('Voz activada. ' + decirMarcador()); else if (canSpeak) speechSynthesis.cancel(); });
+  $('sayNow').addEventListener('click', function(){ speak(decirMarcador()); });
+  voiceUI();
+  $('flip').addEventListener('click', function(){ flipLocal = !flipLocal; try { localStorage.setItem(FLIP_KEY, flipLocal ? '1' : '0'); } catch(e){} render(); });
+  // Pantalla de inicio
+  var setupTarget = s.settings.target || 15, setupServe = 0;
+  function segSync(){
+    [].forEach.call($('segTarget').children, function(b){ b.setAttribute('aria-pressed', String(+b.dataset.v === setupTarget)); });
+    [].forEach.call($('segServe').children, function(b){ b.setAttribute('aria-pressed', String(+b.dataset.v === setupServe)); });
+    $('serveOptA').textContent = $('setupA').value.trim() || 'Izquierda';
+    $('serveOptB').textContent = $('setupB').value.trim() || 'Derecha';
+  }
+  function openSetup(){ showSetup = true; $('setupA').value = ''; $('setupB').value = ''; setupTarget = s.settings.target || 15; setupServe = 0; segSync(); }
+  $('segTarget').addEventListener('click', function(e){ var b = e.target.closest('button'); if (b){ setupTarget = +b.dataset.v; segSync(); } });
+  $('segServe').addEventListener('click', function(e){ var b = e.target.closest('button'); if (b){ setupServe = +b.dataset.v; segSync(); } });
+  $('setupA').addEventListener('input', segSync); $('setupB').addEventListener('input', segSync);
+  $('startMatch').addEventListener('click', function(){
+    var settings = Object.assign({}, s.settings, {target:setupTarget});
+    s = fresh(); s.settings = settings;
+    s.names = [$('setupA').value.trim() || 'Equipo A', $('setupB').value.trim() || 'Equipo B'];
+    s.server = setupServe; s.started = true;
+    s.event = 'Saca ' + nm(setupServe) + '. Toca el botón del equipo que ganó cada rally.';
+    anuncia('Empieza el partido, ' + nm(0) + ' contra ' + nm(1) + '. Saca ' + nm(setupServe) + '.');
+    undo = []; flipLocal = false; try { localStorage.setItem(FLIP_KEY, '0'); } catch(e){}
+    showSetup = false; render(); save(); speakNew(); window.scrollTo(0, 0);
+  });
+  $('resumeMatch').addEventListener('click', function(){ showSetup = false; render(); });
+  function goWatch(){ var c = $('watchCode').value.toUpperCase().replace(/[^A-Z0-9]/g,''); if (c.length >= 4) location.href = location.pathname + '?ver=' + c; }
+  $('watchGo').addEventListener('click', goWatch);
+  $('watchCode').addEventListener('keydown', function(e){ if (e.key === 'Enter') goWatch(); });
+  if (!VIEWER && params.has('nuevo')){ openSetup(); try { history.replaceState(null, '', location.pathname); } catch(e){} }
+  if (!VIEWER && !s.started) openSetup();
   ['A','B'].forEach(function(L, i){ $('name'+L).addEventListener('input', function(e){ s.names[i] = e.target.value; render(); save(); }); });
   $('target').addEventListener('change', function(e){ var v = parseInt(e.target.value,10); if (v >= 5 && v <= 30){ s.settings.target = v; render(); save(); } });
   $('setsToWin').addEventListener('change', function(e){ var v = parseInt(e.target.value,10); if (v >= 1 && v <= 3){ s.settings.setsToWin = v; render(); save(); } });
@@ -303,7 +445,7 @@ body.viewer .name{border-bottom-color:transparent;pointer-events:none}
       live('Conectando con el marcador ' + VIEW + '…', '');
       vconn = vpeer.connect(PREFIX + VIEW.toLowerCase(), {reliable:true});
       vconn.on('open', function(){ live('En vivo · marcador ' + VIEW, 'on'); });
-      vconn.on('data', function(d){ try { s = typeof d === 'string' ? JSON.parse(d) : d; render(); } catch(e){} });
+      vconn.on('data', function(d){ try { var first = !vconn._got; vconn._got = true; s = typeof d === 'string' ? JSON.parse(d) : d; if (first) lastSaid = s.n || 0; render(); speakNew(); } catch(e){} });
       vconn.on('close', function(){ live('Se perdió la conexión. Reintentando…', 'off'); scheduleRetry(); });
       vconn.on('error', function(){ live('Se perdió la conexión. Reintentando…', 'off'); scheduleRetry(); });
     }
