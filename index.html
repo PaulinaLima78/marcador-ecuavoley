@@ -106,10 +106,7 @@ details summary{cursor:pointer;font-weight:600;min-height:32px;display:flex;alig
 .divider{border-top:1px dashed var(--line)}
 .sidebtn{min-height:52px;font-size:17px}
 #matchUI{display:flex;flex-direction:column;gap:12px}
-.tools2{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
-.tools2 .btn{padding:0 8px;font-size:15px}
-#voice[aria-pressed="true"]{background:var(--win);border-color:var(--win);color:#fff}
-@media (max-width:420px){.tools2 .btn{font-size:13px}}
+
 .viewonly{display:none}
 body.viewer .viewonly{display:flex}
 body.viewer .rally,body.viewer .tools,body.viewer details,body.viewer #shareCard,body.viewer #confirm{display:none!important}
@@ -171,11 +168,7 @@ body.viewer .name{border-bottom-color:transparent;pointer-events:none}
     </section>
   </div>
 
-  <div class="tools2">
-    <button type="button" class="btn sidebtn" id="flip">⇄ Cambiar de lado</button>
-    <button type="button" class="btn sidebtn" id="voice" aria-pressed="false">🔈 Voz apagada</button>
-    <button type="button" class="btn sidebtn" id="sayNow">📣 Decir marcador</button>
-  </div>
+  <button type="button" class="btn sidebtn" id="flip">⇄ Cambiar de lado los equipos</button>
 
   <div class="status">
     <span><b id="setNo">Set 1</b> · Saca <span id="serverName">Equipo A</span></span>
@@ -266,8 +259,6 @@ body.viewer .name{border-bottom-color:transparent;pointer-events:none}
   function snap(){ undo.push(JSON.stringify(s)); if (undo.length > 150) undo.shift(); }
   function nm(i){ return s.names[i].trim() || (i ? 'Equipo B' : 'Equipo A'); }
 
-  function marcadorTexto(){ var sv = s.server; return 'Bate ' + s.score[sv] + ', recibe ' + s.score[1-sv] + '.'; }
-  function anuncia(texto){ s.say = texto; s.n = (s.n || 0) + 1; }
   function rally(w){
     if (s.done) return;
     snap();
@@ -281,55 +272,19 @@ body.viewer .name{border-bottom-color:transparent;pointer-events:none}
         if (s.sets[w] >= s.settings.setsToWin){
           s.done = true; s.winner = w;
           s.event = '¡' + nm(w) + ' gana el partido!'; s.eventType = 'point';
-          anuncia('Punto. Set para ' + nm(w) + ', ' + s.score[w] + ' a ' + s.score[1-w] + '. ¡' + nm(w) + ' gana el partido!');
         } else {
           s.event = nm(w) + ' gana el set ' + s.setNo + ' (' + s.score[0] + '–' + s.score[1] + '). Cambio de cancha: empieza el set ' + (s.setNo+1) + '.';
           s.eventType = 'point';
-          var fin = s.score[w] + ' a ' + s.score[1-w];
           s.setNo++; s.score = [0,0]; s.server = 1 - w;
-          anuncia('Punto. Set para ' + nm(w) + ', ' + fin + '. Cambio de cancha. Saca ' + nm(s.server) + '.');
         }
       } else {
         s.event = 'Punto para ' + nm(w) + '.'; s.eventType = 'point';
-        anuncia('Punto. ' + marcadorTexto());
       }
     } else {
       s.server = w;
       s.event = 'Cambio: ahora saca ' + nm(w) + '.'; s.eventType = '';
-      anuncia('Cambio. Saca ' + nm(w) + '. ' + marcadorTexto());
     }
-    render(); save(); speakNew();
-  }
-
-  // ---------- Voz (para conectar un parlante) ----------
-  var VOICE_KEY = 'marcador-ecuavoley-voz';
-  var voiceOn = false; try { voiceOn = localStorage.getItem(VOICE_KEY) === '1'; } catch(e){}
-  var canSpeak = 'speechSynthesis' in window;
-  var lastSaid = s.n || 0, esVoice = null;
-  function pickVoice(){
-    if (!canSpeak) return;
-    var vs = speechSynthesis.getVoices().filter(function(v){ return /^es/i.test(v.lang); });
-    var pref = ['es-EC','es-CO','es-MX','es-US','es-419','es-ES'];
-    esVoice = null;
-    for (var i=0;i<pref.length && !esVoice;i++) esVoice = vs.filter(function(v){ return v.lang.replace('_','-') === pref[i]; })[0] || null;
-    if (!esVoice) esVoice = vs[0] || null;
-  }
-  if (canSpeak){ pickVoice(); try { speechSynthesis.addEventListener('voiceschanged', pickVoice); } catch(e){} }
-  function speak(text){
-    if (!canSpeak || !text) return;
-    try {
-      speechSynthesis.cancel();
-      var u = new SpeechSynthesisUtterance(text);
-      u.lang = esVoice ? esVoice.lang : 'es-419'; if (esVoice) u.voice = esVoice;
-      u.rate = 0.95; u.volume = 1;
-      speechSynthesis.speak(u);
-    } catch(e){}
-  }
-  function speakNew(){ var n = s.n || 0; if (n !== lastSaid){ lastSaid = n; if (voiceOn) speak(s.say); } }
-  function voiceUI(){ var b = $('voice'); b.setAttribute('aria-pressed', String(voiceOn)); b.textContent = voiceOn ? '🔊 Voz activada' : '🔈 Voz apagada'; b.disabled = !canSpeak; if (!canSpeak) b.textContent = 'Voz no disponible'; }
-  function decirMarcador(){
-    if (s.done) return '¡' + nm(s.winner) + ' gana el partido! Sets ' + s.sets[s.winner] + ' a ' + s.sets[1-s.winner] + '.';
-    return 'Set ' + s.setNo + '. Saca ' + nm(s.server) + '. ' + marcadorTexto() + ' Sets: ' + nm(0) + ' ' + s.sets[0] + ', ' + nm(1) + ' ' + s.sets[1] + '.';
+    render(); save();
   }
 
   var FLIP_KEY = 'marcador-ecuavoley-lado';
@@ -371,14 +326,11 @@ body.viewer .name{border-bottom-color:transparent;pointer-events:none}
 
   $('rallyA').addEventListener('click', function(){ rally(0); });
   $('rallyB').addEventListener('click', function(){ rally(1); });
-  $('undo').addEventListener('click', function(){ if (!undo.length) return; var n = s.n || 0; s = JSON.parse(undo.pop()); s.n = n; s.event = 'Se deshizo la última jugada.'; s.eventType = ''; anuncia('Corrección. Saca ' + nm(s.server) + '. ' + marcadorTexto()); render(); save(); speakNew(); });
-  $('swap').addEventListener('click', function(){ snap(); s.server = 1 - s.server; s.event = 'Saque corregido: saca ' + nm(s.server) + '.'; s.eventType = ''; anuncia('Corrección. Saca ' + nm(s.server) + '. ' + marcadorTexto()); render(); save(); speakNew(); });
+  $('undo').addEventListener('click', function(){ if (!undo.length) return; s = JSON.parse(undo.pop()); s.event = 'Se deshizo la última jugada.'; s.eventType = ''; render(); save(); });
+  $('swap').addEventListener('click', function(){ snap(); s.server = 1 - s.server; s.event = 'Saque corregido: saca ' + nm(s.server) + '.'; s.eventType = ''; render(); save(); });
   $('newMatch').addEventListener('click', function(){ $('confirm').hidden = false; $('confirmYes').focus(); });
   $('confirmNo').addEventListener('click', function(){ $('confirm').hidden = true; });
   $('confirmYes').addEventListener('click', function(){ s = fresh(s); undo = []; $('confirm').hidden = true; openSetup(); render(); save(); });
-  $('voice').addEventListener('click', function(){ voiceOn = !voiceOn; try { localStorage.setItem(VOICE_KEY, voiceOn ? '1' : '0'); } catch(e){} voiceUI(); if (voiceOn) speak('Voz activada. ' + decirMarcador()); else if (canSpeak) speechSynthesis.cancel(); });
-  $('sayNow').addEventListener('click', function(){ speak(decirMarcador()); });
-  voiceUI();
   $('flip').addEventListener('click', function(){ flipLocal = !flipLocal; try { localStorage.setItem(FLIP_KEY, flipLocal ? '1' : '0'); } catch(e){} render(); });
   // Pantalla de inicio
   var setupTarget = s.settings.target || 15, setupServe = 0;
@@ -398,9 +350,8 @@ body.viewer .name{border-bottom-color:transparent;pointer-events:none}
     s.names = [$('setupA').value.trim() || 'Equipo A', $('setupB').value.trim() || 'Equipo B'];
     s.server = setupServe; s.started = true;
     s.event = 'Saca ' + nm(setupServe) + '. Toca el botón del equipo que ganó cada rally.';
-    anuncia('Empieza el partido, ' + nm(0) + ' contra ' + nm(1) + '. Saca ' + nm(setupServe) + '.');
     undo = []; flipLocal = false; try { localStorage.setItem(FLIP_KEY, '0'); } catch(e){}
-    showSetup = false; render(); save(); speakNew(); window.scrollTo(0, 0);
+    showSetup = false; render(); save(); window.scrollTo(0, 0);
   });
   $('resumeMatch').addEventListener('click', function(){ showSetup = false; render(); });
   function goWatch(){ var c = $('watchCode').value.toUpperCase().replace(/[^A-Z0-9]/g,''); if (c.length >= 4) location.href = location.pathname + '?ver=' + c; }
@@ -445,7 +396,7 @@ body.viewer .name{border-bottom-color:transparent;pointer-events:none}
       live('Conectando con el marcador ' + VIEW + '…', '');
       vconn = vpeer.connect(PREFIX + VIEW.toLowerCase(), {reliable:true});
       vconn.on('open', function(){ live('En vivo · marcador ' + VIEW, 'on'); });
-      vconn.on('data', function(d){ try { var first = !vconn._got; vconn._got = true; s = typeof d === 'string' ? JSON.parse(d) : d; if (first) lastSaid = s.n || 0; render(); speakNew(); } catch(e){} });
+      vconn.on('data', function(d){ try { s = typeof d === 'string' ? JSON.parse(d) : d; render(); } catch(e){} });
       vconn.on('close', function(){ live('Se perdió la conexión. Reintentando…', 'off'); scheduleRetry(); });
       vconn.on('error', function(){ live('Se perdió la conexión. Reintentando…', 'off'); scheduleRetry(); });
     }
